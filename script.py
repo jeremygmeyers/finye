@@ -20,9 +20,7 @@ def import_data(symbols, end_date): # interval 365 days hardcoded
     #Adj Close adjusts for dividends in the close price
 
 def daily_returns(data):
-    data = pandas.DataFrame(data)
-    new_data = (-1) * numpy.log(data)
-    #.shift(1) / data ) && mult by -1 # differences for returns
+    new_data = (-1) * numpy.log((data).shift(1) / data ) # differences for returns
     new_data = new_data[1:] # removes top row of NaNs
     return new_data
 
@@ -32,4 +30,5 @@ end_date = datetime.date.today()
 symbols = ['SPY','GOOG','IBM','TLT','GLD','^VIX','VXX','UVXY','IWM','RWM','SH']
 data = import_data(symbols, datetime.date.today())
 print data
+print "RETURNS"
 print daily_returns(data)
