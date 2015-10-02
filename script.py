@@ -7,6 +7,17 @@ import datetime
 import matplotlib.pyplot as plt
 import numpy
 
+# TASK LIST
+# 1. CONTEMPLATE SWITCHING TO QUANDL
+    # READ https://blog.thinknewfound.com/2014/06/tracking-down-data/1:
+# 2. ADD MORE FUNCTIONALITY FROM GOOGLE
+# 2A. STDEV
+# 2B. PEARSON CORREL & BETA
+# 2C. SPEARMAN CORREL & BETA
+
+# Note: Historical TLT data pulled disagrees with Google & Yahoo Finance for much of 2014-15
+    # Perhaps this is due to frequent dividend adjustments. Has 12 dividends per year.
+
 # data import, with hardcoded:
     # end = today
     # symbols
@@ -32,3 +43,4 @@ data = import_data(symbols, datetime.date.today())
 print data
 print "RETURNS"
 print daily_returns(data)
+
