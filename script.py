@@ -8,32 +8,28 @@ import matplotlib.pyplot as plt
 import numpy
 
 # data import, with hardcoded:
-    # interval = 365
     # end = today
     # symbols
 
-def import_data(interval, end_date):
-
-
-interval = 365
-end = datetime.date.today()
-start = end.replace(year=end.year-1)
-
-symbols = ['SPY','GOOG','IBM','TLT','GLD','^VIX','VXX','UVXY','IWM','RWM','SH']
-
-data = pandas.DataFrame()
-for sym in symbols:
-    data[sym] = web.DataReader(sym, 'yahoo', start, end)['Adj Close']
+def import_data(symbols, end_date): # interval 365 days hardcoded
+    start = end_date.replace(year=end_date.year-1)
+    data = pandas.DataFrame()
+    for sym in symbols:
+        data[sym] = web.DataReader(sym, 'yahoo', start, end_date)['Adj Close']
+    return data
     #Adj Close adjusts for dividends in the close price
 
-# end of data import
-
 def daily_returns(data):
-    new_data = (-1) * numpy.log(data.shift(1) / data ) # differences for returns
+    data = pandas.DataFrame(data)
+    new_data = (-1) * numpy.log(data)
+    #.shift(1) / data ) && mult by -1 # differences for returns
     new_data = new_data[1:] # removes top row of NaNs
     return new_data
 
 # main method
 
-data = import_data(365, datetime.date.today())
+end_date = datetime.date.today()
+symbols = ['SPY','GOOG','IBM','TLT','GLD','^VIX','VXX','UVXY','IWM','RWM','SH']
+data = import_data(symbols, datetime.date.today())
+print data
 print daily_returns(data)
