@@ -10,9 +10,13 @@ import numpy
 # TASK LIST
 # 1. CONTEMPLATE SWITCHING TO QUANDL
 # 2. ADD MORE FUNCTIONALITY FROM GOOGLE
-# 2A. STDEV                                 DONE
-# 2B. PEARSON CORREL & BETA                 DONE
-# 2C. SPEARMAN CORREL & BETA                DONE
+# 3. HISTORICALS TAB                        DONE
+#       STDEV
+#       PEARSON CORREL & BETA
+#       SPEARMAN CORREL & BETA
+# 4. CORRELATION & BETA ANALYSIS TAB
+#       NOTES, GRAPHS, BENCHMARK NOTES
+# 5. HISTORICAL PORTFOLIO ANALYSIS
 
 # Note: Historical TLT data pulled disagrees with Google & Yahoo Finance for much of 2014-15
     # Perhaps this is due to frequent dividend adjustments. Has 12 dividends per year.
