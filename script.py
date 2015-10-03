@@ -33,7 +33,7 @@ def daily_returns(data):
 def collinearity(returns):
     returns_std = numpy.std(returns) # stdevs
     returns_corr = returns.corr() # Pearson correlations
-    returns_beta = returns_std # easily creates new series of same shape
+    returns_beta = returns_std.copy() # easily creates new series of same shape
     market_std = returns_std[0]
 
     for i in xrange(0,len(returns_std)):
@@ -45,9 +45,24 @@ def collinearity(returns):
 
 end_date = datetime.date.today()
 symbols = ['SPY','GOOG','IBM','TLT','GLD','^VIX','VXX','UVXY','IWM','RWM','SH']
+
 data = import_data(symbols, datetime.date.today())
 returns = daily_returns(data)
-
 returns_std, returns_corr, returns_beta = collinearity(returns)
 
-print returns_std, returns_corr, returns_beta
+
+spearman_corr = returns_std.copy() # easily creates new series of same shape
+spearman_beta = returns_std.copy() # see above
+for i in xrange(0,len(returns_std)):
+    temp = returns.iloc[:,i]
+    temp_sort = temp.argsort()
+    ranks = numpy.empty(len(temp), int)
+    ranks[temp_sort] = numpy.arange(len(temp))
+    if i == 0: market_ranks = ranks
+    diff = (ranks - market_ranks)**2
+    spearman_corr[i] = 1- 6*diff.sum() / float((len(diff)) * (len(diff)**2-1))
+    market_std = returns_std[0]
+    spearman_beta[i] = spearman_corr[i] * returns_std[i] / market_std
+
+
+
