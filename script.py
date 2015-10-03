@@ -14,9 +14,11 @@ import numpy
 #       STDEV
 #       PEARSON CORREL & BETA
 #       SPEARMAN CORREL & BETA
-# 4. CORRELATION & BETA ANALYSIS TAB
+# 4. CORRELATION & BETA ANALYSIS TAB        DONE
 #       notes, graphs, benchmark notes
 # 5. HISTORICAL PORTFOLIO ANALYSIS
+
+# programing technique - create portfolio object
 
 # perhaps switch to quandl (though I'd want to create adjusted close myself then)
 # would be good experience working with api
@@ -62,6 +64,41 @@ def collinearity_spearman(returns):
         spearman_beta[i] = spearman_corr[i] * returns_std[i] / market_std
     return returns_std, spearman_corr, spearman_beta
 
+def correlation_analysis(stockA, stockB, setPrint):
+    # if you want stock beta against index, set stockA=index
+    # assumes 1 year interval since import_data assumes that
+    loc_data = import_data([stockA,stockB],datetime.date.today())
+    loc_returns = daily_returns(loc_data)
+    loc_stds, loc_pearson_corrs, loc_pearson_betas = collinearity_pearson(loc_returns)
+    loc_stds, loc_spearman_corrs, loc_spearman_betas = collinearity_spearman(loc_returns)
+    if setPrint == 1:
+        print '\nCorrelation Analysis of ', stockA, 'and ', stockB, '(1 year of data) \n'
+        print 'Standard Deviations: \n', loc_stds, '\n'
+
+        result = pandas.concat([loc_spearman_betas, loc_spearman_corrs, loc_pearson_betas, loc_pearson_corrs.iloc[0]], axis=1)
+        result.columns = ['Spearman Beta','Spearman Corr','Pearson Beta','Pearson Corr']
+        print 'Spearman Beta & Correlation: \n', result
+
+        graph = plt.figure()
+        plt.grid(True)
+        plt.title('Correlation measures spread around beta line',fontsize=20,fontweight='bold')
+        plt.scatter(loc_returns.iloc[:,0],loc_returns.iloc[:,1])
+        plt.xlabel(stockA, fontsize=20)
+        plt.ylabel(stockB, fontsize=20)
+
+        # add regression line (uses pearson data, fits data better)
+        x_min = min(loc_returns.iloc[:,0])
+        x_max = max(loc_returns.iloc[:,0])
+        y_line_max = x_max * loc_pearson_corrs.iloc[1]
+        y_line_min = x_min * loc_pearson_corrs.iloc[1]
+
+        plt.plot( (x_min, x_max), (y_line_min, y_line_max), '-', color='red')
+
+        plt.show()
+        graph.savefig('graph.jpg')
+        graph.clear()
+        graph.close()
+        graph.clf()
 # main method
 
 end_date = datetime.date.today()
@@ -71,7 +108,8 @@ data = import_data(symbols, datetime.date.today())
 returns = daily_returns(data)
 returns_std, returns_corr, returns_beta = collinearity_spearman(returns)
 
-print returns_std, returns_corr, returns_beta
+#correlation_analysis('SPY','GOOG',1)
+#print returns_std, returns_corr, returns_beta
 
 
 
