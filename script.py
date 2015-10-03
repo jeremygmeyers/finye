@@ -1,6 +1,3 @@
-#source: http://pandas.pydata.org/pandas-docs/stable/remote_data.html
-# git  : https://github.com/pydata/pandas-datareader
-
 import pandas
 import pandas.io.data as web
 import datetime
@@ -8,15 +5,21 @@ import matplotlib.pyplot as plt
 import numpy
 
 # TASK LIST
-# 1. CONTEMPLATE SWITCHING TO QUANDL
+# 1. CONTEMPLATE SWITCH TO QUANDL
+#       does it adjust for stock splits?
+#       does it adjust for dividends (see how yahoo does this) ?
+#       is the data accurate? compare with what i'm currently getting from yahoo?
 # 2. ADD MORE FUNCTIONALITY FROM GOOGLE
 # 3. HISTORICALS TAB                        DONE
 #       STDEV
 #       PEARSON CORREL & BETA
 #       SPEARMAN CORREL & BETA
 # 4. CORRELATION & BETA ANALYSIS TAB
-#       NOTES, GRAPHS, BENCHMARK NOTES
+#       notes, graphs, benchmark notes
 # 5. HISTORICAL PORTFOLIO ANALYSIS
+
+# perhaps switch to quandl (though I'd want to create adjusted close myself then)
+# would be good experience working with api
 
 # Note: Historical TLT data pulled disagrees with Google & Yahoo Finance for much of 2014-15
     # Perhaps this is due to frequent dividend adjustments. Has 12 dividends per year.
