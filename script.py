@@ -5,10 +5,11 @@ import matplotlib.pyplot as plt
 import numpy
 
 # TASK LIST
-# 1. CONTEMPLATE SWITCH TO QUANDL
+# 1. SWITCH TO QUANDL                       next step!
 #       does it adjust for stock splits?
-#       does it adjust for dividends (see how yahoo does this) ?
+#       does it adjust for dividends ? if not, see how yahoo does it, adjust close $ myself
 #       is the data accurate? compare with what i'm currently getting from yahoo?
+#       + this would be good experience working with APs
 # 2. ADD MORE FUNCTIONALITY FROM GOOGLE
 # 3. HISTORICALS TAB                        DONE
 #       STDEV
@@ -16,12 +17,7 @@ import numpy
 #       SPEARMAN CORREL & BETA
 # 4. CORRELATION & BETA ANALYSIS TAB        DONE
 #       notes, graphs, benchmark notes
-# 5. HISTORICAL PORTFOLIO ANALYSIS
-
-# programing technique - create portfolio object
-
-# perhaps switch to quandl (though I'd want to create adjusted close myself then)
-# would be good experience working with api
+# 5. HISTORICAL PORTFOLIO ANALYSIS          in progress!
 
 # Note: Historical TLT data pulled disagrees with Google & Yahoo Finance for much of 2014-15
     # Perhaps this is due to frequent dividend adjustments. Has 12 dividends per year.
