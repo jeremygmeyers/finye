@@ -99,17 +99,64 @@ def correlation_analysis(stockA, stockB, setPrint):
         graph.clear()
         graph.close()
         graph.clf()
-# main method
 
+class Portfolio(object):
+    def __init__(self, symbols, amounts):
+        self.symbols = symbols # stock symbols
+        self.amounts = amounts # amount of stock held in each
+
+def stockAmount(symbol,value):
+    loc_data = import_data(symbol, datetime.date.today())
+    loc_price = loc_data.iloc[len(loc_data)-1]
+    loc_price = loc_price.iloc[0]
+    amount = value / loc_price
+    return amount
+
+def stockValue(symbol,amount):
+    loc_data = import_data(symbol, datetime.date.today())
+    loc_price = loc_data.iloc[len(loc_data)-1]
+    loc_price = loc_price.iloc[0]
+    value = amount * loc_price
+    return value
+
+def zeroBetaPortfolio(symbols,value,spearman):
+    # this will go long all positions
+    # spearman = 0 uses pearson, spearman = 1 uses spearman
+    loc_data = import_data(symbols, datetime.date.today())
+    loc_returns = daily_returns(loc_data)
+    if spearman == 0:
+        loc_stds, loc_corrs, loc_betas = collinearity_pearson(loc_returns)
+    if spearman == 1:
+        loc_stds, loc_corrs, loc_betas = collinearity_spearman(loc_returns)
+    abs_sum_beta = numpy.sum(numpy.absolute(loc_betas))
+    loc_values = loc_stds.copy() # easily creates new array with same shape
+    loc_amounts = loc_stds.copy() # "
+    for i in xrange(0,len(symbols)):
+        loc_values[i] = ( abs_sum_beta - numpy.absolute(loc_betas[i]) ) / abs_sum_beta * value
+        loc_amounts[i] = stockAmount(symbols[i],loc_values[i])
+    return Portfolio(symbols,loc_amounts)
+
+def analyzePortfolio(port):
+    totalValue = 0
+    print '\nthis portfolio has '
+    for i in xrange(0,len(port.symbols)):
+        shareValue = stockValue(port.symbols[i],port.amounts[i])
+        totalValue = totalValue + shareValue
+        print port.amounts[i], ' shares of ', port.symbols[i], ' which is $', shareValue
+    print '\n total value is $', totalValue
+
+# main method
+'''
 end_date = datetime.date.today()
 symbols = ['SPY','GOOG','IBM','TLT','GLD','^VIX','VXX','UVXY','IWM','RWM','SH']
 
 data = import_data(symbols, datetime.date.today())
 returns = daily_returns(data)
 returns_std, returns_corr, returns_beta = collinearity_spearman(returns)
-
+print 'hereC'
 #correlation_analysis('SPY','GOOG',1)
 #print returns_std, returns_corr, returns_beta
+'''
 
-
-
+x = zeroBetaPortfolio(['SPY','TLT'],100000,1)
+analyzePortfolio(x)
