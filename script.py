@@ -18,6 +18,10 @@ import numpy
 # 4. CORRELATION & BETA ANALYSIS TAB        DONE
 #       notes, graphs, benchmark notes
 # 5. HISTORICAL PORTFOLIO ANALYSIS          in progress!
+#       current port analysis (by shares & total : value, betas)
+#       historical analysis (value over time) + growth
+#       port stats (performance : stdev, range, end point gain
+
 
 # Note: Historical TLT data pulled disagrees with Google & Yahoo Finance for much of 2014-15
     # Perhaps this is due to frequent dividend adjustments. Has 12 dividends per year.
@@ -102,15 +106,15 @@ class Portfolio(object):
         self.amounts = amounts # amount of stock held in each
 
 def stockAmount(symbol,value):
-    loc_data = import_data(symbol, datetime.date.today())
+    loc_data = import_data([symbol], datetime.date.today())
     loc_price = loc_data.iloc[len(loc_data)-1]
     loc_price = loc_price.iloc[0]
     amount = value / loc_price
     return amount
 
-def stockValue(symbol,amount):
-    loc_data = import_data(symbol, datetime.date.today())
-    loc_price = loc_data.iloc[len(loc_data)-1]
+def stockValue(symbol,amount,daysAgo):
+    loc_data = import_data([symbol], datetime.date.today())
+    loc_price = loc_data.iloc[len(loc_data)-1-daysAgo]
     loc_price = loc_price.iloc[0]
     value = amount * loc_price
     return value
@@ -133,13 +137,25 @@ def zeroBetaPortfolio(symbols,value,spearman):
     return Portfolio(symbols,loc_amounts)
 
 def analyzePortfolio(port):
-    totalValue = 0
     print '\nthis portfolio has '
+    values = pandas.DataFrame(0, index = [0,1,2,3,4,5,21,63,125,250], columns = port.symbols+['portVal','growth'])
+
     for i in xrange(0,len(port.symbols)):
-        shareValue = stockValue(port.symbols[i],port.amounts[i])
-        totalValue = totalValue + shareValue
-        print port.amounts[i], ' shares of ', port.symbols[i], ' which is $', shareValue
-    print '\n total value is $', totalValue
+
+        for z in xrange(0,10):
+            values.iloc[z,i] = stockValue(port.symbols[i],port.amounts[i],int(values.index[z]))
+
+        print port.amounts[i], ' shares of ', port.symbols[i], ' which today is $', values.iloc[0,i]
+
+    values['portVal'] = values.sum(axis=1)
+
+    print values
+
+    # NEXT STEPS
+        # print current portfolio as table instead of strings, add beta column
+        # add row for total, with total beta, & beta-weighted delta
+
+        # port stats: stdev, range, end point gain
 
 # main method
 '''
