@@ -182,16 +182,16 @@ def analyzePortfolio(port):
     print 'Historical values:\n', values, '\n'
 
     returns = daily_returns(data)
-    evalDF = pandas.DataFrame(0, index= port.symbols+['port'], columns = ['std%','range%','1yGain%','beta'])
-    evalDF['std%'], returns_corr, evalDF['beta'] = collinearity_spearman(returns)
+    evalDF = pandas.DataFrame(0, index= port.symbols+['port'], columns = ['std%','range%','1yGain%','beta','corr'])
+    evalDF['std%'], evalDF['corr'], evalDF['beta'] = collinearity_spearman(returns)
 
 
     evalDF['range%'] = (data.max(axis=0) - data.min(axis=0)) / data.iloc[len(data)-1]
     evalDF['1yGain%'] = (data.iloc[len(data)-1] - data.iloc[0] ) / data.iloc[0]
 
     evalDF.iloc[:,0:3] = numpy.round(100*evalDF.iloc[:,0:3],2)
-    evalDF.iloc[:,3] = numpy.round(evalDF.iloc[:,3], 2)
-    print 'Historical statistics\n', evalDF, '\n'
+    evalDF.iloc[:,3:5] = numpy.round(evalDF.iloc[:,3:5], 2)
+    print 'Historical statistics:\n', evalDF, '\n'
 
 # main method
 '''
