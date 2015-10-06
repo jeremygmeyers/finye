@@ -44,7 +44,7 @@ def collinearity_pearson(returns):
     returns_corr = returns.corr() # Pearson correlations
     returns_beta = returns_std.copy() # easily creates new series of same shape
     market_std = returns_std[0]
-    for i in xrange(0,len(returns_std)):
+    for i in range(0,len(returns_std)):
         returns_beta[i] = returns_std[i] * returns_corr.iloc[i,0] / market_std
     return returns_std, returns_corr, returns_beta
 
@@ -52,7 +52,7 @@ def collinearity_spearman(returns):
     returns_std = numpy.std(returns) # stdevs
     spearman_corr = returns_std.copy() # easily creates new series of same shape
     spearman_beta = returns_std.copy() # see above
-    for i in xrange(0,len(returns_std)):
+    for i in range(0,len(returns_std)):
         temp = returns.iloc[:,i]
         temp_sort = temp.argsort()
         ranks = numpy.empty(len(temp), int)
@@ -105,6 +105,14 @@ class Portfolio(object):
         self.symbols = symbols # stock symbols
         self.amounts = amounts # amount of stock held in each
 
+def historicalsPort(port):
+    data = import_data(port.symbols, datetime.date.today())
+    data.loc[:,'port'] = pandas.Series(0, index=data.index)
+    for i in range(0,len(data.iloc[:,0])):
+        for z in range(0,len(data.iloc[0,:])-1):
+            data.iloc[i,len(port.symbols)] = port.amounts[z] * data.iloc[i,z] + data.iloc[i,len(port.symbols)]
+    return data
+
 def stockAmount(symbol,value):
     loc_data = import_data([symbol], datetime.date.today())
     loc_price = loc_data.iloc[len(loc_data)-1]
@@ -119,6 +127,15 @@ def stockValue(symbol,amount,daysAgo):
     value = amount * loc_price
     return value
 
+def printPort(port):
+    rows = port.symbols + ['total']
+    df = pandas.DataFrame(0, index = rows, columns = ['shares','curVal'])
+    df.shares = port.amounts
+    for i in range(0,len(port.symbols)) :
+        df.iloc[i,1] = round ( stockValue(port.symbols[i],port.amounts[i],0) , 2 )
+    df.iloc[len(rows)-1,1] = df.sum(axis=0)['curVal']
+    print '\nThis portfolio is:', '\n', df, '\n'
+
 def zeroBetaPortfolio(symbols,value,spearman):
     # this will go long all positions
     # spearman = 0 uses pearson, spearman = 1 uses spearman
@@ -131,31 +148,38 @@ def zeroBetaPortfolio(symbols,value,spearman):
     abs_sum_beta = numpy.sum(numpy.absolute(loc_betas))
     loc_values = loc_stds.copy() # easily creates new array with same shape
     loc_amounts = loc_stds.copy() # "
-    for i in xrange(0,len(symbols)):
+    for i in range(0,len(symbols)):
         loc_values[i] = ( abs_sum_beta - numpy.absolute(loc_betas[i]) ) / abs_sum_beta * value
-        loc_amounts[i] = stockAmount(symbols[i],loc_values[i])
+        loc_amounts[i] = round ( stockAmount(symbols[i],loc_values[i]) , 2 )
     return Portfolio(symbols,loc_amounts)
 
 def analyzePortfolio(port):
-    print '\nthis portfolio has '
-    values = pandas.DataFrame(0, index = [0,1,2,3,4,5,21,63,125,250], columns = port.symbols+['portVal','growth'])
+    printPort(port)
 
-    for i in xrange(0,len(port.symbols)):
+    values = pandas.DataFrame(0, index = [0,1,2,3,4,5,21,63,125,250], columns = port.symbols+['portVal','% change to today'])
 
-        for z in xrange(0,10):
-            values.iloc[z,i] = stockValue(port.symbols[i],port.amounts[i],int(values.index[z]))
+# could make more efficient by just taking the rows i'm interested in from historicalPort()
 
-        print port.amounts[i], ' shares of ', port.symbols[i], ' which today is $', values.iloc[0,i]
+    for i in range(0,len(port.symbols)):
+
+        for z in range(0,10):
+            values.iloc[z,i] = round ( stockValue(port.symbols[i],port.amounts[i],int(values.index[z])) , 2 )
 
     values['portVal'] = values.sum(axis=1)
 
-    print values
+    for z in values.index:
+        values['portVal'][z] = round ( values['portVal'][z] , 2 )
+        values['% change to today'][z] = round ( (values['portVal'][0] - values['portVal'][z]) / values['portVal'][z] * 100 , 1 )
+    print 'Historical performance:\n', values, '\n'
+
+    data = historicalsPort(port)
+    returns = daily_returns(data)
+
+    print returns.std(axis=0)#['port']
 
     # NEXT STEPS
-        # print current portfolio as table instead of strings, add beta column
-        # add row for total, with total beta, & beta-weighted delta
 
-        # port stats: stdev, range, end point gain
+        # port stats: stdev, range, end point gain (as %s!!!)
 
 # main method
 '''
@@ -165,9 +189,8 @@ symbols = ['SPY','GOOG','IBM','TLT','GLD','^VIX','VXX','UVXY','IWM','RWM','SH']
 data = import_data(symbols, datetime.date.today())
 returns = daily_returns(data)
 returns_std, returns_corr, returns_beta = collinearity_spearman(returns)
-print 'hereC'
-#correlation_analysis('SPY','GOOG',1)
-#print returns_std, returns_corr, returns_beta
+correlation_analysis('SPY','GOOG',1)
+print returns_std, returns_corr, returns_beta
 '''
 
 x = zeroBetaPortfolio(['SPY','TLT'],100000,1)
