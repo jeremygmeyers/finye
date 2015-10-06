@@ -18,8 +18,8 @@ import numpy
 # 4. CORRELATION & BETA ANALYSIS TAB        DONE
 #       notes, graphs, benchmark notes
 # 5. HISTORICAL PORTFOLIO ANALYSIS          in progress!
-#       current port analysis (by shares & total : value, betas)
-#       historical analysis (value over time) + growth
+#       current port analysis -- add betas to printPort
+#       historical analysis                 done
 #       port stats (performance : stdev, range, end point gain
 
 
