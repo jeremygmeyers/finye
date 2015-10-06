@@ -4,20 +4,14 @@ import datetime
 import matplotlib.pyplot as plt
 import numpy
 
-# TASK LIST
-# 1. SWITCH TO QUANDL                       next step!
-#       does it adjust for stock splits?
-#       does it adjust for dividends ? if not, see how yahoo does it, adjust close $ myself
-#       is the data accurate? compare with what i'm currently getting from yahoo?
-#       + this would be good experience working with APs
-# 2. ADD MORE FUNCTIONALITY FROM GOOGLE
-# 3. HISTORICALS TAB                        DONE
+# ADD FUNCTIONALITY FROM GOOGLE SPREADSHEET
+# 1. HISTORICALS TAB                        DONE
 #       STDEV
 #       PEARSON CORREL & BETA
 #       SPEARMAN CORREL & BETA
-# 4. CORRELATION & BETA ANALYSIS TAB        DONE
+# 2. CORRELATION & BETA ANALYSIS TAB        DONE
 #       notes, graphs, benchmark notes
-# 5. HISTORICAL PORTFOLIO ANALYSIS          in progress
+# 3. HISTORICAL PORTFOLIO ANALYSIS          in progress
 #       current port analysis
 #       historical analysis
 #       port stats
@@ -173,22 +167,20 @@ def zeroBetaPortfolio(symbols,value,spearman):
 
 def analyzePortfolio(port):
     printPort(port)
-    values = pandas.DataFrame(0, index = [0,1,2,3,4,5,21,63,125,250], columns = port.symbols+['portVal','% change to today'])
 
-# could make more efficient by just taking the rows i'm interested in from historicalPort()
-    for i in range(0,len(port.symbols)):
-
-        for z in range(0,10):
-            values.iloc[z,i] = round ( stockValue(port.symbols[i],port.amounts[i],int(values.index[z])) , 2 )
-
-    values['portVal'] = values.sum(axis=1)
+    data = pandas.DataFrame(historicalsPort(port), columns=port.symbols+['port','% change to today']) # adds cols to DF
+    values = data.iloc[::-1]
+    val_index = [0,1,2,3,4,5,21,63,125,len(data)-1]
+    values = values.iloc[val_index,:]
+    values.index = val_index
 
     for z in values.index:
-        values['portVal'][z] = round ( values['portVal'][z] , 2 )
-        values['% change to today'][z] = round ( (values['portVal'][0] - values['portVal'][z]) / values['portVal'][z] * 100 , 1 )
-    print 'Historical performance:\n', values, '\n'
+        values['% change to today'][z] = round ( (values['port'][0] - values['port'][z]) / values['port'][z] * 100 , 1 )
 
-    data = historicalsPort(port)
+    values = numpy.round(values, 2)
+
+    print 'Historical values:\n', values, '\n'
+
     returns = daily_returns(data)
     evalDF = pandas.DataFrame(0, index= port.symbols+['port'], columns = ['std%','range%','1yGain%','beta'])
     evalDF['std%'], returns_corr, evalDF['beta'] = collinearity_spearman(returns)
@@ -196,11 +188,10 @@ def analyzePortfolio(port):
 
     evalDF['range%'] = (data.max(axis=0) - data.min(axis=0)) / data.iloc[len(data)-1]
     evalDF['1yGain%'] = (data.iloc[len(data)-1] - data.iloc[0] ) / data.iloc[0]
-    print data.iloc[len(data)-1]
 
     evalDF.iloc[:,0:3] = numpy.round(100*evalDF.iloc[:,0:3],2)
     evalDF.iloc[:,3] = numpy.round(evalDF.iloc[:,3], 2)
-    print evalDF, '\n'
+    print 'Historical statistics\n', evalDF, '\n'
 
 # main method
 '''
