@@ -17,11 +17,11 @@ import numpy
 #       SPEARMAN CORREL & BETA
 # 4. CORRELATION & BETA ANALYSIS TAB        DONE
 #       notes, graphs, benchmark notes
-# 5. HISTORICAL PORTFOLIO ANALYSIS          in progress!
-#       current port analysis -- add betas to printPort
-#       historical analysis                 done
-#       port stats (performance : stdev, range, end point gain
-#       make 6m & 1y ago adjustable, take len, divide by 2 etc.
+# 5. HISTORICAL PORTFOLIO ANALYSIS          in progress
+#       current port analysis
+#       historical analysis
+#       port stats
+#       compare multiple portfolios simultaneously!!!!!
 
 # Note: Historical TLT data pulled disagrees with Google & Yahoo Finance for much of 2014-15
     # Perhaps this is due to frequent dividend adjustments. Has 12 dividends per year.
@@ -175,14 +175,16 @@ def analyzePortfolio(port):
 
     data = historicalsPort(port)
     returns = daily_returns(data)
+    evalDF = pandas.DataFrame(0, index= port.symbols+['port'], columns = ['std%','range%','1yGain%','beta'])
+    evalDF['std%'], returns_corr, evalDF['beta'] = collinearity_spearman(returns)
 
-    evalDF = pandas.DataFrame(0, index= port.symbols+['port'], columns = ['std%','range%','1yGain%'])
-    evalDF['std%'] = returns.std(axis=0)
+
     evalDF['range%'] = (data.max(axis=0) - data.min(axis=0)) / data.iloc[len(data)-1]
     evalDF['1yGain%'] = (data.iloc[len(data)-1] - data.iloc[0] ) / data.iloc[0]
 
-    print numpy.round(100*evalDF,2), '\n'
-
+    evalDF.iloc[:,0:3] = numpy.round(100*evalDF.iloc[:,0:3],2)
+    evalDF.iloc[:,3] = numpy.round(evalDF.iloc[:,3], 2)
+    print evalDF, '\n'
 
 # main method
 '''
