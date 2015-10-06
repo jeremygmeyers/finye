@@ -132,6 +132,7 @@ def printPort(port):
     df = pandas.DataFrame(0, index = rows, columns = ['shares','price','curVal'])
     df.shares = port.amounts
     for i in range(0,len(port.symbols)) :
+        df.iloc[i,0] = round (df.iloc[i,0], 2)
         df.iloc[i,1] = round ( stockValue(port.symbols[i],1,0) , 2 )
         df.iloc[i,2] = round ( stockValue(port.symbols[i],port.amounts[i],0) , 2 )
     df.iloc[len(rows)-1,2] = df.sum(axis=0)['curVal']
@@ -149,18 +150,32 @@ def zeroBetaPortfolio(symbols,value,spearman):
     abs_sum_beta = numpy.sum(numpy.absolute(loc_betas))
     loc_values = loc_stds.copy() # easily creates new array with same shape
     loc_amounts = loc_stds.copy() # "
+    new = pandas.DataFrame(0,index=symbols+['port'], columns=['beta','absBeta','sumABOthers','priorNorm','weightedBeta','amount'])
+    new['beta'] = loc_betas
+    new['absBeta'] = numpy.absolute(loc_betas)
     for i in range(0,len(symbols)):
-        loc_values[i] = ( abs_sum_beta - numpy.absolute(loc_betas[i]) ) / abs_sum_beta * value
-        loc_amounts[i] = round ( stockAmount(symbols[i],loc_values[i]) , 2 )
-    return Portfolio(symbols,loc_amounts)
+        for z in range(0,len(symbols)):
+            if i != z:
+                new.iloc[i,2] += new.iloc[z,1]
+
+    new.iloc[len(symbols),1] = numpy.sum(numpy.absolute(new.absBeta))
+    new.iloc[len(symbols),2] = numpy.sum(numpy.absolute(new.sumABOthers))
+
+    for i in range(0,len(symbols)):
+        new.iloc[i,3] = new.iloc[i,2] / new.iloc[len(symbols),2]
+        new.iloc[i,4] = new.iloc[i,0] * new.iloc[i,3]
+        new.iloc[i,5] = value * new.iloc[i,3] / loc_data.iloc[0,i]
+
+    new.iloc[len(symbols),3] = numpy.sum(numpy.absolute(new.priorNorm))
+    new.iloc[len(symbols),4] = numpy.sum(new.weightedBeta)
+
+    return Portfolio(symbols,new.iloc[:len(new)-1,5])
 
 def analyzePortfolio(port):
     printPort(port)
-
     values = pandas.DataFrame(0, index = [0,1,2,3,4,5,21,63,125,250], columns = port.symbols+['portVal','% change to today'])
 
 # could make more efficient by just taking the rows i'm interested in from historicalPort()
-
     for i in range(0,len(port.symbols)):
 
         for z in range(0,10):
@@ -181,6 +196,7 @@ def analyzePortfolio(port):
 
     evalDF['range%'] = (data.max(axis=0) - data.min(axis=0)) / data.iloc[len(data)-1]
     evalDF['1yGain%'] = (data.iloc[len(data)-1] - data.iloc[0] ) / data.iloc[0]
+    print data.iloc[len(data)-1]
 
     evalDF.iloc[:,0:3] = numpy.round(100*evalDF.iloc[:,0:3],2)
     evalDF.iloc[:,3] = numpy.round(evalDF.iloc[:,3], 2)
@@ -198,5 +214,5 @@ correlation_analysis('SPY','GOOG',1)
 print returns_std, returns_corr, returns_beta
 '''
 
-x = zeroBetaPortfolio(['SPY','^VIX'],100000,1)
+x = zeroBetaPortfolio(['SPY','GLD','TLT'],100000,1)
 analyzePortfolio(x)
