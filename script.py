@@ -21,7 +21,7 @@ import numpy
 #       current port analysis -- add betas to printPort
 #       historical analysis                 done
 #       port stats (performance : stdev, range, end point gain
-
+#       make 6m & 1y ago adjustable, take len, divide by 2 etc.
 
 # Note: Historical TLT data pulled disagrees with Google & Yahoo Finance for much of 2014-15
     # Perhaps this is due to frequent dividend adjustments. Has 12 dividends per year.
@@ -129,11 +129,12 @@ def stockValue(symbol,amount,daysAgo):
 
 def printPort(port):
     rows = port.symbols + ['total']
-    df = pandas.DataFrame(0, index = rows, columns = ['shares','curVal'])
+    df = pandas.DataFrame(0, index = rows, columns = ['shares','price','curVal'])
     df.shares = port.amounts
     for i in range(0,len(port.symbols)) :
-        df.iloc[i,1] = round ( stockValue(port.symbols[i],port.amounts[i],0) , 2 )
-    df.iloc[len(rows)-1,1] = df.sum(axis=0)['curVal']
+        df.iloc[i,1] = round ( stockValue(port.symbols[i],1,0) , 2 )
+        df.iloc[i,2] = round ( stockValue(port.symbols[i],port.amounts[i],0) , 2 )
+    df.iloc[len(rows)-1,2] = df.sum(axis=0)['curVal']
     print '\nThis portfolio is:', '\n', df, '\n'
 
 def zeroBetaPortfolio(symbols,value,spearman):
@@ -175,11 +176,13 @@ def analyzePortfolio(port):
     data = historicalsPort(port)
     returns = daily_returns(data)
 
-    print returns.std(axis=0)#['port']
+    evalDF = pandas.DataFrame(0, index= port.symbols+['port'], columns = ['std%','range%','1yGain%'])
+    evalDF['std%'] = returns.std(axis=0)
+    evalDF['range%'] = (data.max(axis=0) - data.min(axis=0)) / data.iloc[len(data)-1]
+    evalDF['1yGain%'] = (data.iloc[len(data)-1] - data.iloc[0] ) / data.iloc[0]
 
-    # NEXT STEPS
+    print numpy.round(100*evalDF,2), '\n'
 
-        # port stats: stdev, range, end point gain (as %s!!!)
 
 # main method
 '''
@@ -193,5 +196,5 @@ correlation_analysis('SPY','GOOG',1)
 print returns_std, returns_corr, returns_beta
 '''
 
-x = zeroBetaPortfolio(['SPY','TLT'],100000,1)
+x = zeroBetaPortfolio(['SPY','^VIX'],100000,1)
 analyzePortfolio(x)
