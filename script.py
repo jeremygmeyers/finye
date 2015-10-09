@@ -16,6 +16,7 @@ import numpy
 #       historical analysis
 #       port stats
 #       compare multiple portfolios simultaneously!!!!!
+# 4. DOWNLOAD DATA TO SAVE FOR LATER USE W/OUT INTERNET
 
 # Note: Historical TLT data pulled disagrees with Google & Yahoo Finance for much of 2014-15
     # Perhaps this is due to frequent dividend adjustments. Has 12 dividends per year.
@@ -123,14 +124,19 @@ def stockValue(symbol,amount,daysAgo):
 
 def printPort(port):
     rows = port.symbols + ['total']
-    df = pandas.DataFrame(0, index = rows, columns = ['shares','price','curVal'])
+    df = pandas.DataFrame(0, index = rows, columns = ['shares','price','curVal','cur%'])
     df.shares = port.amounts
     for i in range(0,len(port.symbols)) :
         df.iloc[i,0] = round (df.iloc[i,0], 2)
         df.iloc[i,1] = round ( stockValue(port.symbols[i],1,0) , 2 )
         df.iloc[i,2] = round ( stockValue(port.symbols[i],port.amounts[i],0) , 2 )
+    df.iloc[len(rows)-1,0] = float('NaN')
+    df.iloc[len(rows)-1,1] = float('NaN')
     df.iloc[len(rows)-1,2] = df.sum(axis=0)['curVal']
-    print '\nThis portfolio is:', '\n', df, '\n'
+    for i in range(0,len(port.symbols)) :
+        df.iloc[i,3] = round ( df.iloc[i,2] / df.iloc[len(rows)-1,2] , 2 )
+    df.iloc[len(rows)-1,3] = df.sum(axis=0)['cur%']
+    print '\nPortfolio components:', '\n', df, '\n'
 
 def zeroBetaPortfolio(symbols,value,spearman):
     # this will go long all positions
@@ -191,8 +197,22 @@ def analyzePortfolio(port):
 
     evalDF.iloc[:,0:3] = numpy.round(100*evalDF.iloc[:,0:3],2)
     evalDF.iloc[:,3:5] = numpy.round(evalDF.iloc[:,3:5], 2)
-    print 'Historical statistics:\n', evalDF, '\n'
+    # note: corr & beta are calculated here against stock 1
+    print 'Historical statistics: \n', evalDF, '\n'
 
+def comparePorts(arrayOfPorts):
+    stocklist = []
+    cols = []
+    for i in range(0,len(arrayOfPorts)):
+        stocklist += arrayOfPorts[i].symbols
+        newCol = ['Port '+str(i)]
+        cols += newCol
+        printPort(arrayOfPorts[i])
+    stocklist = [x.upper() for x in stocklist]
+    stocks = set(stocklist)
+    stocks = sorted(list(stocks))
+    compare = pandas.DataFrame(0, index=stocks+['beta'], columns=cols)
+    print compare
 # main method
 '''
 end_date = datetime.date.today()
@@ -205,5 +225,7 @@ correlation_analysis('SPY','GOOG',1)
 print returns_std, returns_corr, returns_beta
 '''
 
-x = zeroBetaPortfolio(['SPY','GLD','TLT'],100000,1)
-analyzePortfolio(x)
+x = zeroBetaPortfolio(['IWM','eem','GLD','TLT'],100000,1)
+y = zeroBetaPortfolio(['SPY','TLT'],100000,1)
+comparePorts([x,y])
+#analyzePortfolio(x)
