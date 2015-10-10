@@ -34,46 +34,49 @@ def daily_returns(data):
     new_data = new_data[1:] # removes top row of NaNs
     return new_data
 
-def collinearity_pearson(returns):
+def collinearity(symbols,spearman): #will add a symbol for beta/corr calc.
+    # assumes datetime = today
+    #if it has SPY then this gets confusing
+    data = import_data(symbols, datetime.date.today() )
+    spy = import_data(['SPY'], datetime.date.today() )
+    allData = pandas.concat([data,spy],axis=1)
+    returns = daily_returns(allData)
     returns_std = numpy.std(returns) # stdevs
-    returns_corr = returns.corr() # Pearson correlations
+    returns_corr = returns.corr() # Pearson corrs
+    returns_corr = returns.corr().iloc[:,len(symbols)] # Pearson corrs series
     returns_beta = returns_std.copy() # easily creates new series of same shape
-    market_std = returns_std[0]
-    for i in range(0,len(returns_std)):
-        returns_beta[i] = returns_std[i] * returns_corr.iloc[i,0] / market_std
-    return returns_std, returns_corr, returns_beta
-
-def collinearity_spearman(returns):
-    returns_std = numpy.std(returns) # stdevs
-    spearman_corr = returns_std.copy() # easily creates new series of same shape
-    spearman_beta = returns_std.copy() # see above
-    for i in range(0,len(returns_std)):
-        temp = returns.iloc[:,i]
-        temp_sort = temp.argsort()
-        ranks = numpy.empty(len(temp), int)
-        ranks[temp_sort] = numpy.arange(len(temp))
-        if i == 0: market_ranks = ranks
-        diff = (ranks - market_ranks)**2
-        spearman_corr[i] = 1- 6*diff.sum() / float((len(diff)) * (len(diff)**2-1))
-        market_std = returns_std[0]
-        spearman_beta[i] = spearman_corr[i] * returns_std[i] / market_std
-    return returns_std, spearman_corr, spearman_beta
+    market_std = returns_std[len(symbols)]
+    if spearman == 0:
+        for i in range(0, len(symbols)):
+            returns_beta[i] = returns_std[i] * returns_corr.iloc[i] / market_std
+    if spearman == 1:
+        for i in range(len(symbols),-1,-1):
+            temp = returns.iloc[:,i]
+            temp_sort = temp.argsort()
+            ranks = numpy.empty(len(temp), int)
+            ranks[temp_sort] = numpy.arange(len(temp))
+            if i == len(symbols): market_ranks = ranks
+            diff = (ranks - market_ranks)**2
+            returns_corr[i] = 1- 6*diff.sum() / float((len(diff)) * (len(diff)**2-1))
+            market_std = returns_std[0]
+            returns_beta[i] = returns_corr[i] * returns_std[i] / market_std
+    return returns_std.iloc[0:len(symbols)], returns_corr.iloc[0:len(symbols)], returns_beta.iloc[0:len(symbols)]
 
 def correlation_analysis(stockA, stockB, setPrint):
     # if you want stock beta against index, set stockA=index
     # assumes 1 year interval since import_data assumes that
-    loc_data = import_data([stockA,stockB],datetime.date.today())
-    loc_returns = daily_returns(loc_data)
-    loc_stds, loc_pearson_corrs, loc_pearson_betas = collinearity_pearson(loc_returns)
-    loc_stds, loc_spearman_corrs, loc_spearman_betas = collinearity_spearman(loc_returns)
+    loc_stds, loc_pearson_corrs, loc_pearson_betas = collinearity([stockA,stockB],0)
+    loc_stds, loc_spearman_corrs, loc_spearman_betas = collinearity([stockA,stockB],1)
     if setPrint == 1:
         print '\nCorrelation Analysis of ', stockA, 'and ', stockB, '(1 year of data) \n'
         print 'Standard Deviations: \n', loc_stds, '\n'
 
-        result = pandas.concat([loc_spearman_betas, loc_spearman_corrs, loc_pearson_betas, loc_pearson_corrs.iloc[0]], axis=1)
+        result = pandas.concat([loc_spearman_betas, loc_spearman_corrs, loc_pearson_betas, loc_pearson_corrs], axis=1)
         result.columns = ['Spearman Beta','Spearman Corr','Pearson Beta','Pearson Corr']
         print 'Spearman Beta & Correlation: \n', result
 
+        loc_data = import_data([stockA,stockB],datetime.date.today())#########
+        loc_returns = daily_returns(loc_data)
         graph = plt.figure()
         plt.grid(True)
         plt.title('Correlation measures spread around beta line',fontsize=20,fontweight='bold')
@@ -92,7 +95,6 @@ def correlation_analysis(stockA, stockB, setPrint):
         plt.show()
         graph.savefig('graph.jpg')
         graph.clear()
-        graph.close()
         graph.clf()
 
 class Portfolio(object):
@@ -122,7 +124,7 @@ def stockValue(symbol,amount,daysAgo):
     value = amount * loc_price
     return value
 
-def printPort(port):
+def portSum(port,toPrint):
     rows = port.symbols + ['total']
     df = pandas.DataFrame(0, index = rows, columns = ['shares','price','curVal','cur%'])
     df.shares = port.amounts
@@ -136,7 +138,9 @@ def printPort(port):
     for i in range(0,len(port.symbols)) :
         df.iloc[i,3] = round ( df.iloc[i,2] / df.iloc[len(rows)-1,2] , 2 )
     df.iloc[len(rows)-1,3] = df.sum(axis=0)['cur%']
-    print '\nPortfolio components:', '\n', df, '\n'
+    if toPrint==1 :
+        print '\nPortfolio components:', '\n', df, '\n'
+    return df
 
 def zeroBetaPortfolio(symbols,value,spearman):
     # this will go long all positions
@@ -171,9 +175,7 @@ def zeroBetaPortfolio(symbols,value,spearman):
 
     return Portfolio(symbols,new.iloc[:len(new)-1,5])
 
-def analyzePortfolio(port):
-    printPort(port)
-
+def analyzePortfolio(port,printToScreen):
     data = pandas.DataFrame(historicalsPort(port), columns=port.symbols+['port','% change to today']) # adds cols to DF
     values = data.iloc[::-1]
     val_index = [0,1,2,3,4,5,21,63,125,len(data)-1]
@@ -184,8 +186,6 @@ def analyzePortfolio(port):
         values['% change to today'][z] = round ( (values['port'][0] - values['port'][z]) / values['port'][z] * 100 , 1 )
 
     values = numpy.round(values, 2)
-
-    print 'Historical values:\n', values, '\n'
 
     returns = daily_returns(data)
     evalDF = pandas.DataFrame(0, index= port.symbols+['port'], columns = ['std%','range%','1yGain%','beta','corr'])
@@ -198,34 +198,45 @@ def analyzePortfolio(port):
     evalDF.iloc[:,0:3] = numpy.round(100*evalDF.iloc[:,0:3],2)
     evalDF.iloc[:,3:5] = numpy.round(evalDF.iloc[:,3:5], 2)
     # note: corr & beta are calculated here against stock 1
-    print 'Historical statistics: \n', evalDF, '\n'
+
+    overview = portSum(port,printToScreen)
+    if printToScreen == 1:
+        print 'Historical values:\n', values, '\n'
+        print 'Historical statistics: \n', evalDF, '\n'
+    return overview, values, evalDF
 
 def comparePorts(arrayOfPorts):
     stocklist = []
     cols = []
+    output = []
     for i in range(0,len(arrayOfPorts)):
         stocklist += arrayOfPorts[i].symbols
         newCol = ['Port '+str(i)]
         cols += newCol
-        printPort(arrayOfPorts[i])
+        output.append( analyzePortfolio(arrayOfPorts[i],0) )
     stocklist = [x.upper() for x in stocklist]
     stocks = set(stocklist)
     stocks = sorted(list(stocks))
-    compare = pandas.DataFrame(0, index=stocks+['beta'], columns=cols)
+    compare = pandas.DataFrame(0, index=stocks+['std%','range%','1yGain%','betaSPY','corrSPY'], columns=cols)
     print compare
+    #print output
+    curPerc = output[0][0]['cur%']
+    print curPerc.iloc[0:len(curPerc)-1]
+    #print len(output[0])
+    print output[0][2].iloc[:,:]#.iloc[len(output[0][2]),:]
 # main method
-'''
+
 end_date = datetime.date.today()
-symbols = ['SPY','GOOG','IBM','TLT','GLD','^VIX','VXX','UVXY','IWM','RWM','SH']
+symbols = ['GOOG','SPY']#,'IBM','TLT','SPY','GLD','^VIX','VXX','UVXY','IWM','RWM','SH']
 
-data = import_data(symbols, datetime.date.today())
-returns = daily_returns(data)
-returns_std, returns_corr, returns_beta = collinearity_spearman(returns)
+returns_std, returns_corr, returns_beta = collinearity(symbols,0)
 correlation_analysis('SPY','GOOG',1)
-print returns_std, returns_corr, returns_beta
-'''
+print returns_std, '\n',returns_corr,'\n', returns_beta
 
+'''
 x = zeroBetaPortfolio(['IWM','eem','GLD','TLT'],100000,1)
 y = zeroBetaPortfolio(['SPY','TLT'],100000,1)
 comparePorts([x,y])
 #analyzePortfolio(x)
+'''
+
