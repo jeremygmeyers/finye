@@ -16,21 +16,21 @@ import numpy
 #       historical analysis
 #       port stats
 #       compare multiple portfolios simultaneously!!!!!
-# 4. DOWNLOAD DATA TO SAVE FOR LATER USE W/OUT INTERNET
-
-# NEXT
-# need to fix collinearity function to take in returns instead of symbols
-#so that i can input portfolio returns and get beta, corr, std info returned
-
+# 4. DOWNLOAD DATA & REUSE (for sans wifi)  DONE
 
 # Note: Historical TLT data pulled disagrees with Google & Yahoo Finance for much of 2014-15
     # Perhaps this is due to frequent dividend adjustments. Has 12 dividends per year.
 
 def import_data(symbols, end_date): # interval 365 days hardcoded
-    start = end_date.replace(year=end_date.year-1)
-    data = pandas.DataFrame()
-    for sym in symbols:
-        data[sym] = web.DataReader(sym, 'yahoo', start, end_date)['Adj Close']
+    name = ''.join(symbols)+str(end_date)+'.csv'
+    try:
+        data = pandas.read_csv(name,index_col=0)
+    except IOError:
+        start = end_date.replace(year=end_date.year-1)
+        data = pandas.DataFrame()
+        for sym in symbols:
+            data[sym] = web.DataReader(sym, 'yahoo', start, end_date)['Adj Close']
+    data.to_csv(name)
     return data
     #Adj Close adjusts for dividends in the close price
 
@@ -240,7 +240,7 @@ symbols = ['GOOG','SPY']#,'IBM','TLT','SPY','GLD','^VIX','VXX','UVXY','IWM','RWM
 
 
 x = zeroBetaPortfolio(['IWM','eem','GLD','TLT'],100000,1)
-y = zeroBetaPortfolio(['SPY','TLT'],100000,1)
+y = zeroBetaPortfolio(['SPY','x'],100000,1)
 #print collinearity(daily_returns(historicalsPort(x)),1)
 comparePorts([x,y])
 #analyzePortfolio(x,1)
