@@ -228,14 +228,16 @@ def comparePorts(arrayOfPorts):
             try:
                 if output[c][0]['cur%'].loc[compare.iloc[r].name]:
                     compare.iloc[r,c] = output[c][0]['cur%'].loc[compare.iloc[r].name]        # requires all caps
-#                if output[c][2].iloc[len(arrayOfPorts[0].symbols),:].loc[compare.iloc[r].name] :
-#                    compare.iloc[r,c] = output[c][2].iloc[len(arrayOfPorts[0].symbols),:].loc[compare.iloc[r].name]
                 #print 'yay'
             except KeyError:
                 keyError = 1
                 #print 'bo!'
+            try:
+                if output[c][2].iloc[len(arrayOfPorts[c].symbols),:].loc[compare.iloc[r].name] :
+                    compare.iloc[r,c] = output[c][2].iloc[len(arrayOfPorts[c].symbols),:].loc[compare.iloc[r].name]
+            except KeyError:
+                keyError = 1
     print compare
-    print output[0][2].iloc[len(arrayOfPorts[0].symbols),:]#.iloc[len(output[0][2]),:]
 
 
 # main method
