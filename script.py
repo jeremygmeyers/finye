@@ -1,8 +1,13 @@
 import pandas
-import pandas.io.data as web
+import pandas.io.data
 import datetime
 import matplotlib.pyplot as plt
 import numpy
+
+#test options data
+aapl = pandas.io.data.Options('aapl','yahoo')
+data = aapl.get_call_data(expiry='2015-11-20')
+print data
 
 # ADD FUNCTIONALITY FROM GOOGLE SPREADSHEET
 # 1. HISTORICALS TAB                        DONE
@@ -11,12 +16,15 @@ import numpy
 #       SPEARMAN CORREL & BETA
 # 2. CORRELATION & BETA ANALYSIS TAB        DONE
 #       notes, graphs, benchmark notes
-# 3. HISTORICAL PORTFOLIO ANALYSIS          in progress
+# 3. HISTORICAL PORTFOLIO ANALYSIS          DONE
 #       current port analysis
 #       historical analysis
 #       port stats
-#       compare multiple portfolios simultaneously!!!!!
+#       compare multiple portfolios
 # 4. DOWNLOAD DATA & REUSE (for sans wifi)  DONE
+# 5. MARKET AWARENESS (see google/port)     in progress
+#       need to pull options data/IV/IVR
+#       will need to further rework import_data functionality
 
 # Note: Historical TLT data pulled disagrees with Google & Yahoo Finance for much of 2014-15
     # Perhaps this is due to frequent dividend adjustments. Has 12 dividends per year.
@@ -29,7 +37,7 @@ def import_data(symbols, end_date): # interval 365 days hardcoded
         start = end_date.replace(year=end_date.year-1)
         data = pandas.DataFrame()
         for sym in symbols:
-            data[sym] = web.DataReader(sym, 'yahoo', start, end_date)['Adj Close']
+            data[sym] = pandas.io.data.DataReader(sym, 'yahoo', start, end_date)['Adj Close']
     data.to_csv(name)
     return data
     #Adj Close adjusts for dividends in the close price
@@ -250,10 +258,15 @@ def comparePorts(arrayOfPorts):
 #correlation_analysis('SPY','GOOG',1)
 #print returns_std, '\n',returns_corr,'\n', returns_beta
 
+#aapl = pandas.io.data.Options('AAPL')
+#puts,calls = aapl.get_options_data()
+#print puts,calls
 
+'''
 x = zeroBetaPortfolio(['IWM','EEM','GLD','TLT'],100000,1)
-y = zeroBetaPortfolio(['SPY','X'],100000,1)
+y = zeroBetaPortfolio(['IWM','SH','X'],100000,1)
 #print collinearity(daily_returns(historicalsPort(x)),1)
 comparePorts([x,y])
 #analyzePortfolio(x,1)
 #correlation_analysis('IWM','TLT',1)
+'''
