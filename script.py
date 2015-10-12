@@ -221,17 +221,27 @@ def comparePorts(arrayOfPorts):
     stocklist = [x.upper() for x in stocklist]
     stocks = set(stocklist)
     stocks = sorted(list(stocks))
-    compare = pandas.DataFrame(0, index=stocks+['std%','range%','1yGain%','betaSPY','corrSPY'], columns=cols)
+    compare = pandas.DataFrame(0, index=stocks+['std%','range%','1yGain%','beta','corr'], columns=cols)
+    for c in range(0,len(compare.columns)):      # across cols
+        for r in range(0, len(compare.index)):   # across rows
+
+            try:
+                if output[c][0]['cur%'].loc[compare.iloc[r].name]:
+                    compare.iloc[r,c] = output[c][0]['cur%'].loc[compare.iloc[r].name]        # requires all caps
+#                if output[c][2].iloc[len(arrayOfPorts[0].symbols),:].loc[compare.iloc[r].name] :
+#                    compare.iloc[r,c] = output[c][2].iloc[len(arrayOfPorts[0].symbols),:].loc[compare.iloc[r].name]
+                #print 'yay'
+            except KeyError:
+                keyError = 1
+                #print 'bo!'
     print compare
-    #print output
-    curPerc = output[0][0]['cur%']
-    print curPerc.iloc[0:len(curPerc)-1]
-    #print len(output[0])
-    print output[0][2].iloc[:,:]#.iloc[len(output[0][2]),:]
+    print output[0][2].iloc[len(arrayOfPorts[0].symbols),:]#.iloc[len(output[0][2]),:]
+
+
 # main method
 
-end_date = datetime.date.today()
-symbols = ['GOOG','SPY']#,'IBM','TLT','SPY','GLD','^VIX','VXX','UVXY','IWM','RWM','SH']
+#end_date = datetime.date.today()
+#symbols = ['GOOG','SPY']#,'IBM','TLT','SPY','GLD','^VIX','VXX','UVXY','IWM','RWM','SH']
 #data = import_data(symbols,end_date)
 #returns = daily_returns(data)
 #returns_std, returns_corr, returns_beta = collinearity(returns,0)
@@ -239,8 +249,8 @@ symbols = ['GOOG','SPY']#,'IBM','TLT','SPY','GLD','^VIX','VXX','UVXY','IWM','RWM
 #print returns_std, '\n',returns_corr,'\n', returns_beta
 
 
-x = zeroBetaPortfolio(['IWM','eem','GLD','TLT'],100000,1)
-y = zeroBetaPortfolio(['SPY','x'],100000,1)
+x = zeroBetaPortfolio(['IWM','EEM','GLD','TLT'],100000,1)
+y = zeroBetaPortfolio(['SPY','X'],100000,1)
 #print collinearity(daily_returns(historicalsPort(x)),1)
 comparePorts([x,y])
 #analyzePortfolio(x,1)
