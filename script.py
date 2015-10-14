@@ -30,30 +30,41 @@ import numpy
 
 
 # NEXT
-# just return the IV of the nearest OTM call
+# compare the IV i'm getting with what's in Dough
+# add price of the option, divided by stock price
+
+# LONG TERM
 # how to calculate delta?
 
 def option_data(symbol):
     data = pandas.io.data.Options(symbol,'yahoo')
     data = data.get_call_data(expiry='2015-11-20')
     # EXPIRY SHOULD UPDATE FLEXIBLY!!!!!!!!
-    data['IV'] = data['IV'].replace('%','',regex=True).astype('float')/100
-    dataIV = pandas.Series(data['IV']).reset_index(drop=True)
+    return data
 
-    strikes = data.index.get_level_values('Strike')
-    dataIV = pandas.DataFrame(dataIV)
-
-    # should prob keep the strikes as the index!!!, so i can use later
-    print symbol, '\t', numpy.median(dataIV['IV'])
-    # median is not really what i want, it's IV with delta = 30
-
-def options_data(symbols):
+def options_data(symbols):          # NOT BEING USED ANYMORE
+    dataArray = []
     for x in range(0,len(symbols)):
-        option_data(symbols[x])
+        dataArray.append( option_data(symbols[x]) )
+    return dataArray
 
+def options_analysis(symbols):
+    for x in range(0,len(symbols)):
+        data = option_data(symbols[x])
+        data['IV'] = data['IV'].replace('%','',regex=True).astype('float')/100
+        dataIV = pandas.Series(data['IV']).reset_index(drop=True)
+        strikes = data.index.get_level_values('Strike')
 
-options_data(['aapl','goog','x','gld','tlt'])
-# i also want price of the option, that div by stock price
+        y = 0
+        while float(strikes[y]) < data['Underlying_Price'][0]:
+            y = y+1
+        nearestOTMstrike = strikes[y]
+
+        dataIV = pandas.DataFrame(dataIV)
+        print symbols[x], '\t', dataIV['IV'][x], data['Bid'][x], data['Ask'][x]
+    # I'd rather use IV for the option with delta = 30, but this is a good proxy
+
+options_analysis(['goog','aapl','x','iwm','tlt'])
 
 def import_data(symbols, end_date): # interval 365 days hardcoded
     name = ''.join(symbols)+str(end_date)+'.csv'
