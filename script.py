@@ -4,11 +4,6 @@ import datetime
 import matplotlib.pyplot as plt
 import numpy
 
-#test options data
-aapl = pandas.io.data.Options('aapl','yahoo')
-data = aapl.get_call_data(expiry='2015-11-20')
-print data
-
 # ADD FUNCTIONALITY FROM GOOGLE SPREADSHEET
 # 1. HISTORICALS TAB                        DONE
 #       STDEV
@@ -21,13 +16,39 @@ print data
 #       historical analysis
 #       port stats
 #       compare multiple portfolios
-# 4. DOWNLOAD DATA & REUSE (for sans wifi)  DONE
+# 4. DOWNLOAD DATA & REUSE (for sans wifi)  next
+#       stock data -- done
+#       options data -- wait
 # 5. MARKET AWARENESS (see google/port)     in progress
 #       need to pull options data/IV/IVR
 #       will need to further rework import_data functionality
+# 6. DEVELOP INTERFACE
+#       input should be happening interactively, perhaps with web app
+# 7. FURTHER UNDERSTAND THE DATA
+#       how does div adj happen? does it explain the difference for TLT?
+#       Historical TLT data pulled disagrees with Google & Yahoo Finance for much of 2014-15. Perhaps this is due to frequent dividend adjustments. Has 12 dividends per year.
 
-# Note: Historical TLT data pulled disagrees with Google & Yahoo Finance for much of 2014-15
-    # Perhaps this is due to frequent dividend adjustments. Has 12 dividends per year.
+
+# NEXT
+# how to calculate delta?
+
+def option_data(symbol):
+    data = pandas.io.data.Options(symbol,'yahoo')
+    data = data.get_call_data(expiry='2015-11-20')
+    # EXPIRY SHOULD UPDATE FLEXIBLY!!!!!!!!
+    data['IV'] = data['IV'].replace('%','',regex=True).astype('float')/100
+    dataIV = pandas.Series(data['IV']).reset_index(drop=True)
+    # should prob keep the strikes as the index!!!, so i can use later
+    print symbol, ' ', numpy.median(dataIV)
+    # median is not really what i want, it's IV with delta = 30
+
+def options_data(symbols):
+    for x in range(0,len(symbols)):
+        option_data(symbols[x])
+
+
+options_data(['aapl','goog'])
+# i also want price of the option, that div by stock price
 
 def import_data(symbols, end_date): # interval 365 days hardcoded
     name = ''.join(symbols)+str(end_date)+'.csv'
