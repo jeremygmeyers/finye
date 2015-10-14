@@ -30,6 +30,7 @@ import numpy
 
 
 # NEXT
+# just return the IV of the nearest OTM call
 # how to calculate delta?
 
 def option_data(symbol):
@@ -38,8 +39,12 @@ def option_data(symbol):
     # EXPIRY SHOULD UPDATE FLEXIBLY!!!!!!!!
     data['IV'] = data['IV'].replace('%','',regex=True).astype('float')/100
     dataIV = pandas.Series(data['IV']).reset_index(drop=True)
+
+    strikes = data.index.get_level_values('Strike')
+    dataIV = pandas.DataFrame(dataIV)
+
     # should prob keep the strikes as the index!!!, so i can use later
-    print symbol, ' ', numpy.median(dataIV)
+    print symbol, '\t', numpy.median(dataIV['IV'])
     # median is not really what i want, it's IV with delta = 30
 
 def options_data(symbols):
@@ -47,7 +52,7 @@ def options_data(symbols):
         option_data(symbols[x])
 
 
-options_data(['aapl','goog'])
+options_data(['aapl','goog','x','gld','tlt'])
 # i also want price of the option, that div by stock price
 
 def import_data(symbols, end_date): # interval 365 days hardcoded
