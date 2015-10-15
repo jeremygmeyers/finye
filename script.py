@@ -1,5 +1,5 @@
 import pandas
-import pandas.io.data
+import pandas_datareader.data as web
 import datetime
 import matplotlib.pyplot as plt
 import numpy
@@ -19,7 +19,7 @@ import numpy
 # 4. DOWNLOAD DATA & REUSE (for sans wifi)  next
 #       stock data -- done
 #       options data -- wait
-# 5. MARKET AWARENESS (see google/port)     in progress
+# 5. MARKET AWARENESS + OPTIONS             in progress
 #       need to pull options data/IV/IVR
 #       will need to further rework import_data functionality
 # 6. DEVELOP INTERFACE
@@ -27,44 +27,6 @@ import numpy
 # 7. FURTHER UNDERSTAND THE DATA
 #       how does div adj happen? does it explain the difference for TLT?
 #       Historical TLT data pulled disagrees with Google & Yahoo Finance for much of 2014-15. Perhaps this is due to frequent dividend adjustments. Has 12 dividends per year.
-
-
-# NEXT
-# compare the IV i'm getting with what's in Dough
-# add price of the option, divided by stock price
-
-# LONG TERM
-# how to calculate delta?
-
-def option_data(symbol):
-    data = pandas.io.data.Options(symbol,'yahoo')
-    data = data.get_call_data(expiry='2015-11-20')
-    # EXPIRY SHOULD UPDATE FLEXIBLY!!!!!!!!
-    return data
-
-def options_data(symbols):          # NOT BEING USED ANYMORE
-    dataArray = []
-    for x in range(0,len(symbols)):
-        dataArray.append( option_data(symbols[x]) )
-    return dataArray
-
-def options_analysis(symbols):
-    for x in range(0,len(symbols)):
-        data = option_data(symbols[x])
-        data['IV'] = data['IV'].replace('%','',regex=True).astype('float')/100
-        dataIV = pandas.Series(data['IV']).reset_index(drop=True)
-        strikes = data.index.get_level_values('Strike')
-
-        y = 0
-        while float(strikes[y]) < data['Underlying_Price'][0]:
-            y = y+1
-        nearestOTMstrike = strikes[y]
-
-        dataIV = pandas.DataFrame(dataIV)
-        print symbols[x], '\t', dataIV['IV'][x], data['Bid'][x], data['Ask'][x]
-    # I'd rather use IV for the option with delta = 30, but this is a good proxy
-
-options_analysis(['goog','aapl','x','iwm','tlt'])
 
 def import_data(symbols, end_date): # interval 365 days hardcoded
     name = ''.join(symbols)+str(end_date)+'.csv'
@@ -74,7 +36,7 @@ def import_data(symbols, end_date): # interval 365 days hardcoded
         start = end_date.replace(year=end_date.year-1)
         data = pandas.DataFrame()
         for sym in symbols:
-            data[sym] = pandas.io.data.DataReader(sym, 'yahoo', start, end_date)['Adj Close']
+            data[sym] = web.DataReader(sym, 'yahoo', start, end_date)['Adj Close']
     data.to_csv(name)
     return data
     #Adj Close adjusts for dividends in the close price
@@ -137,7 +99,7 @@ def correlation_analysis(stockA, stockB, setPrint):
         plt.xlabel(stockA, fontsize=20)
         plt.ylabel(stockB, fontsize=20)
 
-        # add regression line (uses pearson data, fits data better)
+        # adds regression line (uses pearson data, fits data better)
         x_min = min(loc_returns.iloc[:,0])
         x_max = max(loc_returns.iloc[:,0])
         y_line_max = x_max * loc_pearson_corrs.iloc[1]
@@ -152,15 +114,18 @@ def correlation_analysis(stockA, stockB, setPrint):
 
 class Portfolio(object):
     def __init__(self, symbols, amounts):
-        self.symbols = symbols # stock symbols
-        self.amounts = amounts # amount of stock held in each
+        self.symbols = []
+        self.amounts = []
+        for x in range(0,len(amounts)):
+            self.symbols.append( symbols[x] ) # stock symbols
+            self.amounts.append( amounts[x] ) # amount of stock held in each
 
 def historicalsPort(port):
     data = import_data(port.symbols, datetime.date.today())
     data.loc[:,'port'] = pandas.Series(0, index=data.index)
     for i in range(0,len(data.iloc[:,0])): # across rows
         for z in range(0,len(data.iloc[0,:])-1): # across cols
-            data.iloc[i,len(port.symbols)] = port.amounts[z] * data.iloc[i,z] + data.iloc[i,len(port.symbols)]
+            data.loc[data.index[i],'port'] = port.amounts[z] * data.iloc[i,z] + data.iloc[i,len(port.symbols)]
     return data
 
 def stockAmount(symbol,value):
@@ -180,9 +145,8 @@ def stockValue(symbol,amount,daysAgo):
 def portSum(port,toPrint):
     rows = port.symbols + ['total']
     df = pandas.DataFrame(0, index = rows, columns = ['shares','price','curVal','cur%'])
-    df.shares = port.amounts
     for i in range(0,len(port.symbols)) :
-        df.iloc[i,0] = round (df.iloc[i,0], 2)
+        df.iloc[i,0] = round (port.amounts[i], 2)
         df.iloc[i,1] = round ( stockValue(port.symbols[i],1,0) , 2 )
         df.iloc[i,2] = round ( stockValue(port.symbols[i],port.amounts[i],0) , 2 )
     df.iloc[len(rows)-1,0] = float('NaN')
@@ -233,7 +197,7 @@ def analyzePortfolio(port,printToScreen):
     values.index = val_index
 
     for z in values.index:
-        values['% change to today'][z] = round ( (values['port'][0] - values['port'][z]) / values['port'][z] * 100 , 1 )
+        values.loc[z,'% change to today'] = round ( (values['port'][0] - values['port'][z]) / values['port'][z] * 100 , 1 )
 
     values = numpy.round(values, 2)
 
@@ -282,8 +246,62 @@ def comparePorts(arrayOfPorts):
                     compare.iloc[r,c] = output[c][2].iloc[len(arrayOfPorts[c].symbols),:].loc[compare.iloc[r].name]
             except KeyError:
                 keyError = 1
-    print compare
+    return compare
 
+def option_data(symbol):
+    data = web.Options(symbol,'yahoo')
+    data = data.get_call_data(expiry='2015-11-20')
+    # EXPIRY SHOULD UPDATE FLEXIBLY!!!!!!!!
+    return data
+
+def options_data(symbols):          # NOT BEING USED ANYMORE
+    dataArray = []
+    for x in range(0,len(symbols)):
+        dataArray.append( option_data(symbols[x]) )
+    return dataArray
+
+def options_analysis(symbols):
+    new = pandas.DataFrame(0, index=symbols, columns=['IV','Bid','Ask','Strike','Price','Ratio'])
+    for x in range(0,len(symbols)):
+        data = option_data(symbols[x])
+        data['IV'] = data['IV'].replace('%','',regex=True).astype('float')/100
+        strikes = data.index.get_level_values('Strike')
+
+        # get nearest OTM call and output IV, I'd rather us option w/ delta=30, but this is a good proxy for now
+        y = 0
+        while float(strikes[y]) < data['Underlying_Price'][0]:
+            y = y+1
+        nearestOTMstrike = strikes[y]
+
+        new.loc[symbols[x],'IV'] = round (100*data.iloc[y,7], 2)
+        new.loc[symbols[x],'Bid'] = data.iloc[y,1]
+        new.loc[symbols[x],'Ask'] = data.iloc[y,2]
+        new.loc[symbols[x],'Strike'] = strikes[y]
+        new.loc[symbols[x],'Price'] = data.iloc[y,11]
+        new.loc[symbols[x],'Ratio'] = round (100*new.loc[symbols[x],'Bid'] / new.loc[symbols[x],'Price'], 2)
+
+    # create an array of ports for the comparePorts() method
+    arrayOfPorts = []
+    for x in range(0,len(symbols)):
+        arrayOfPorts.append(Portfolio([symbols[x]], [100]))
+    print new
+    #print arrayOfPorts[1].symbols
+    print comparePorts(arrayOfPorts)
+
+def uppercase(symbols):
+    for x in range(0,len(symbols)):
+        symbols[x] = symbols[x].upper()
+    return symbols
+
+options_analysis(uppercase(['spy','gld','tlt','eem','iwm','goog','ibm','yhoo','x','uso','ung','slv','gm','qqq']))
+
+# NEXT
+# add in stock data
+# ~ P in 52 as %
+# fix beta, corr
+
+# LONG TERM
+# how to calculate delta?
 
 # main method
 
@@ -295,15 +313,15 @@ def comparePorts(arrayOfPorts):
 #correlation_analysis('SPY','GOOG',1)
 #print returns_std, '\n',returns_corr,'\n', returns_beta
 
-#aapl = pandas.io.data.Options('AAPL')
-#puts,calls = aapl.get_options_data()
-#print puts,calls
+#aapl = web.Options('AAPL','yahoo')
+#print aapl.get_call_data()
 
-'''
-x = zeroBetaPortfolio(['IWM','EEM','GLD','TLT'],100000,1)
-y = zeroBetaPortfolio(['IWM','SH','X'],100000,1)
+
+#x = zeroBetaPortfolio(['IWM','EEM','GLD','TLT'],100000,1)
+#portSum(x,1)
+#y = zeroBetaPortfolio(['IWM','SH','X'],100000,1)
 #print collinearity(daily_returns(historicalsPort(x)),1)
-comparePorts([x,y])
+#print comparePorts([x,y])
 #analyzePortfolio(x,1)
 #correlation_analysis('IWM','TLT',1)
-'''
+
