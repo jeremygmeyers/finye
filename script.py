@@ -280,19 +280,17 @@ def options_analysis(symbols):
         new.loc[symbols[x],'1yMove'] = analyzePortfolio(port,0)[2].loc[symbols[x],'1yGain%']
         # Price in 52 weeks % would be better
 
-    print new
+    return new
 
 def uppercase(symbols):
     for x in range(0,len(symbols)):
         symbols[x] = symbols[x].upper()
     return symbols
 
-options_analysis(uppercase(['tgt','spy','gld','tlt','eem','iwm','goog','ibm','yhoo','x','uso','ung','slv','gm','qqq']))
+print options_analysis(uppercase(['tgt','spy','gld','tlt','eem','iwm','goog','ibm','yhoo','x','uso','ung','slv','gm','qqq']))
 
 # NEXT
 # add in stock data
-# ~ P in 52 as %
-# fix beta, corr
 
 # LONG TERM
 # how to calculate delta?
@@ -306,10 +304,6 @@ options_analysis(uppercase(['tgt','spy','gld','tlt','eem','iwm','goog','ibm','yh
 #returns_std, returns_corr, returns_beta = collinearity(returns,0)
 #correlation_analysis('SPY','GOOG',1)
 #print returns_std, '\n',returns_corr,'\n', returns_beta
-
-#aapl = web.Options('AAPL','yahoo')
-#print aapl.get_call_data()
-
 
 #x = zeroBetaPortfolio(['IWM','EEM','GLD','TLT'],100000,1)
 #portSum(x,1)
