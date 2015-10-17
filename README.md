@@ -1,3 +1,3 @@
 # finye
 
-This project creates tools to analyze stocks and investment portfolios over time. 
+This project creates tools to analyze portfolios of options and stocks over time. 

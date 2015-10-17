@@ -70,7 +70,6 @@ def collinearity(returns,spearman): #will add a symbol for beta/corr calc.
             if i == numsym: market_ranks = ranks
             diff = (ranks - market_ranks)**2
             returns_corr[i] = 1- 6*diff.sum() / float((len(diff)) * (len(diff)**2-1))
-            market_std = returns_std[0]
             returns_beta[i] = returns_corr[i] * returns_std[i] / market_std
     return returns_std.iloc[:-1], returns_corr.iloc[:-1], returns_beta.iloc[:-1]
 
@@ -204,14 +203,12 @@ def analyzePortfolio(port,printToScreen):
     returns = daily_returns(data)
     evalDF = pandas.DataFrame(0, index= port.symbols+['port'], columns = ['std%','range%','1yGain%','beta','corr'])
     evalDF['std%'], evalDF['corr'], evalDF['beta'] = collinearity(returns,1)
-
     evalDF['range%'] = (data.max(axis=0) - data.min(axis=0)) / data.iloc[len(data)-1]
     evalDF['1yGain%'] = (data.iloc[len(data)-1] - data.iloc[0] ) / data.iloc[0]
 
     evalDF.iloc[:,0:3] = numpy.round(100*evalDF.iloc[:,0:3],2)
     evalDF.iloc[:,3:5] = numpy.round(evalDF.iloc[:,3:5], 2)
-    # note: corr & beta are calculated here against stock 1
-    #NEED TO FIX THAT!!!!!!!!!
+
     overview = portSum(port,printToScreen)
     if printToScreen == 1:
         print 'Historical values:\n', values, '\n'
@@ -233,14 +230,11 @@ def comparePorts(arrayOfPorts):
     compare = pandas.DataFrame(0, index=stocks+['std%','range%','1yGain%','beta','corr'], columns=cols)
     for c in range(0,len(compare.columns)):      # across cols
         for r in range(0, len(compare.index)):   # across rows
-
             try:
                 if output[c][0]['cur%'].loc[compare.iloc[r].name]:
-                    compare.iloc[r,c] = output[c][0]['cur%'].loc[compare.iloc[r].name]        # requires all caps
-                #print 'yay'
+                    compare.iloc[r,c] = output[c][0]['cur%'].loc[compare.iloc[r].name]
             except KeyError:
                 keyError = 1
-                #print 'bo!'
             try:
                 if output[c][2].iloc[len(arrayOfPorts[c].symbols),:].loc[compare.iloc[r].name] :
                     compare.iloc[r,c] = output[c][2].iloc[len(arrayOfPorts[c].symbols),:].loc[compare.iloc[r].name]
@@ -261,7 +255,7 @@ def options_data(symbols):          # NOT BEING USED ANYMORE
     return dataArray
 
 def options_analysis(symbols):
-    new = pandas.DataFrame(0, index=symbols, columns=['IV','Bid','Ask','Strike','Price','Ratio'])
+    new = pandas.DataFrame(0, index=symbols, columns=['IV','Bid','Ask','Strike','Price','Ratio','Beta','Corr','1yMove'])
     for x in range(0,len(symbols)):
         data = option_data(symbols[x])
         data['IV'] = data['IV'].replace('%','',regex=True).astype('float')/100
@@ -279,21 +273,21 @@ def options_analysis(symbols):
         new.loc[symbols[x],'Strike'] = strikes[y]
         new.loc[symbols[x],'Price'] = data.iloc[y,11]
         new.loc[symbols[x],'Ratio'] = round (100*new.loc[symbols[x],'Bid'] / new.loc[symbols[x],'Price'], 2)
+        # create temp portfolio to analyze
+        port = Portfolio([symbols[x]], [100])
+        new.loc[symbols[x],'Beta'] = analyzePortfolio(port,0)[2].loc[symbols[x],'beta']
+        new.loc[symbols[x],'Corr'] = analyzePortfolio(port,0)[2].loc[symbols[x],'corr']
+        new.loc[symbols[x],'1yMove'] = analyzePortfolio(port,0)[2].loc[symbols[x],'1yGain%']
+        # Price in 52 weeks % would be better
 
-    # create an array of ports for the comparePorts() method
-    arrayOfPorts = []
-    for x in range(0,len(symbols)):
-        arrayOfPorts.append(Portfolio([symbols[x]], [100]))
     print new
-    #print arrayOfPorts[1].symbols
-    print comparePorts(arrayOfPorts)
 
 def uppercase(symbols):
     for x in range(0,len(symbols)):
         symbols[x] = symbols[x].upper()
     return symbols
 
-options_analysis(uppercase(['spy','gld','tlt','eem','iwm','goog','ibm','yhoo','x','uso','ung','slv','gm','qqq']))
+options_analysis(uppercase(['tgt','spy','gld','tlt','eem','iwm','goog','ibm','yhoo','x','uso','ung','slv','gm','qqq']))
 
 # NEXT
 # add in stock data
