@@ -18,10 +18,10 @@ import numpy
 #       compare multiple portfolios
 # 4. DOWNLOAD DATA & REUSE (for sans wifi)  next
 #       stock data -- done
-#       options data -- wait
+#       options data -- wait                in progress!!!
 # 5. MARKET AWARENESS + OPTIONS             in progress
-#       need to pull options data/IV/IVR
-#       will need to further rework import_data functionality
+#       pull options data
+#
 # 6. DEVELOP INTERFACE
 #       input should be happening interactively, perhaps with web app
 # 7. FURTHER UNDERSTAND THE DATA
@@ -190,7 +190,11 @@ def zeroBetaPortfolio(symbols,value,spearman):
 
 def analyzePortfolio(port,printToScreen):
     data = pandas.DataFrame(historicalsPort(port), columns=port.symbols+['port','% change to today']) # adds cols to DF
+
     values = data.iloc[::-1]
+
+    min_cur_max = [ values.min()['port'] , values.iloc[0,len(port.symbols)], values.max()['port'] ]
+
     val_index = [0,1,2,3,4,5,21,63,125,len(data)-1]
     values = values.iloc[val_index,:]
     values.index = val_index
@@ -213,7 +217,7 @@ def analyzePortfolio(port,printToScreen):
     if printToScreen == 1:
         print 'Historical values:\n', values, '\n'
         print 'Historical statistics: \n', evalDF, '\n'
-    return overview, values, evalDF
+    return overview, values, evalDF, min_cur_max
 
 def comparePorts(arrayOfPorts):
     stocklist = []
@@ -255,7 +259,7 @@ def options_data(symbols):          # NOT BEING USED ANYMORE
     return dataArray
 
 def options_analysis(symbols):
-    new = pandas.DataFrame(0, index=symbols, columns=['IV','Bid','Ask','Strike','Price','Ratio','Beta','Corr','1yMove'])
+    new = pandas.DataFrame(0, index=symbols, columns=['IV','Bid','Ask','Strike','Price','Ratio','Beta','Corr','DayMove','MonthMove','YearMove','pRank52'])
     for x in range(0,len(symbols)):
         data = option_data(symbols[x])
         data['IV'] = data['IV'].replace('%','',regex=True).astype('float')/100
@@ -275,10 +279,20 @@ def options_analysis(symbols):
         new.loc[symbols[x],'Ratio'] = round (100*new.loc[symbols[x],'Bid'] / new.loc[symbols[x],'Price'], 2)
         # create temp portfolio to analyze
         port = Portfolio([symbols[x]], [100])
-        new.loc[symbols[x],'Beta'] = analyzePortfolio(port,0)[2].loc[symbols[x],'beta']
-        new.loc[symbols[x],'Corr'] = analyzePortfolio(port,0)[2].loc[symbols[x],'corr']
-        new.loc[symbols[x],'1yMove'] = analyzePortfolio(port,0)[2].loc[symbols[x],'1yGain%']
-        # Price in 52 weeks % would be better
+        analyzed = analyzePortfolio(port,0)
+        new.loc[symbols[x],'Beta'] = analyzed[2].loc[symbols[x],'beta']
+        new.loc[symbols[x],'Corr'] = analyzed[2].loc[symbols[x],'corr']
+        new.loc[symbols[x],'DayMove'] = analyzed[1].loc[1,"% change to today"]
+        new.loc[symbols[x],'MonthMove'] = analyzed[1].loc[21,"% change to today"]
+        values_flipped = analyzed[1].iloc[::-1]
+        new.loc[symbols[x],'YearMove'] = values_flipped.iloc[0,2]
+
+        # calculate price as % within range of 52 week movement
+        port_max = analyzed[3][2]
+        port_min = analyzed[3][0]
+        port_cur = analyzed[3][1]
+        p_in_52 = (port_cur - port_min) / ( port_max - port_min )
+        new.loc[symbols[x],'pRank52'] = round (100*p_in_52, 0)
 
     return new
 
@@ -287,7 +301,9 @@ def uppercase(symbols):
         symbols[x] = symbols[x].upper()
     return symbols
 
+
 print options_analysis(uppercase(['tgt','spy','gld','tlt','eem','iwm','goog','ibm','yhoo','x','uso','ung','slv','gm','qqq']))
+
 
 # NEXT
 # add in stock data
@@ -302,7 +318,7 @@ print options_analysis(uppercase(['tgt','spy','gld','tlt','eem','iwm','goog','ib
 #data = import_data(symbols,end_date)
 #returns = daily_returns(data)
 #returns_std, returns_corr, returns_beta = collinearity(returns,0)
-#correlation_analysis('SPY','GOOG',1)
+#correlation_analysis('IBM','X',1)
 #print returns_std, '\n',returns_corr,'\n', returns_beta
 
 #x = zeroBetaPortfolio(['IWM','EEM','GLD','TLT'],100000,1)
