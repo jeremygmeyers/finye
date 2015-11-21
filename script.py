@@ -4,6 +4,9 @@ import datetime
 import matplotlib.pyplot as plt
 import numpy
 
+# problem - latest 1dmove is incorrect, prob b/c i'm losing last day price
+# somewhere in datafeed from stocks - historicalPort / analyzePort
+
 # ADD FUNCTIONALITY FROM GOOGLE SPREADSHEET
 # 1. HISTORICALS TAB                        DONE
 #       STDEV
@@ -16,7 +19,7 @@ import numpy
 #       historical analysis
 #       port stats
 #       compare multiple portfolios
-# 4. DOWNLOAD DATA & REUSE (for sans wifi)  next
+# 4. DOWNLOAD DATA & REUSE (for sans wifi)  undid
 #       stock data -- done
 #       options data -- wait                in progress!!!
 # 5. MARKET AWARENESS + OPTIONS             in progress
@@ -29,17 +32,16 @@ import numpy
 #       Historical TLT data pulled disagrees with Google & Yahoo Finance for much of 2014-15. Perhaps this is due to frequent dividend adjustments. Has 12 dividends per year.
 
 def import_data(symbols, end_date): # interval 365 days hardcoded
-    name = ''.join(symbols)+str(end_date)+'.csv'
-    try:
-        data = pandas.read_csv(name,index_col=0)
-    except IOError:
-        start = end_date.replace(year=end_date.year-1)
-        data = pandas.DataFrame()
-        for sym in symbols:
-            data[sym] = web.DataReader(sym, 'yahoo', start, end_date)['Adj Close']
-    data.to_csv(name)
+    start = end_date.replace(year=end_date.year-1)
+    data = pandas.DataFrame()
+    for sym in symbols:
+        data[sym] = web.DataReader(sym, 'yahoo', start, end_date)['Adj Close']
+        last_price = round ( option_data(sym).iloc[0,11] , 2)
+        # on occasion the latest day close will not appear
+        if round ( float ( data.iloc[len(data)-1] ) , 2) != last_price :
+            data = data.append(pandas.Series(last_price,[end_date]).to_frame(sym))
     return data
-    #Adj Close adjusts for dividends in the close price
+    # Adj Close adjusts for dividends in the close price
 
 def daily_returns(data):
     new_data = (-1) * numpy.log((data).shift(1) / data ) # differences for returns
@@ -190,7 +192,6 @@ def zeroBetaPortfolio(symbols,value,spearman):
 
 def analyzePortfolio(port,printToScreen):
     data = pandas.DataFrame(historicalsPort(port), columns=port.symbols+['port','% change to today']) # adds cols to DF
-
     values = data.iloc[::-1]
 
     min_cur_max = [ values.min()['port'] , values.iloc[0,len(port.symbols)], values.max()['port'] ]
@@ -200,6 +201,10 @@ def analyzePortfolio(port,printToScreen):
     values.index = val_index
 
     for z in values.index:
+        #if z == 0:
+            #print values['port'][0], values['port'][1]
+        #    values.loc[z,'% change to today'] = round ( (values['port'][0] - values['port'][1]) / values['port'][1] * 100 , 1 )
+        #else:
         values.loc[z,'% change to today'] = round ( (values['port'][0] - values['port'][z]) / values['port'][z] * 100 , 1 )
 
     values = numpy.round(values, 2)
@@ -248,7 +253,7 @@ def comparePorts(arrayOfPorts):
 
 def option_data(symbol):
     data = web.Options(symbol,'yahoo')
-    data = data.get_call_data(expiry='2015-11-20')
+    data = data.get_call_data(expiry='2015-12-18')
     # EXPIRY SHOULD UPDATE FLEXIBLY!!!!!!!!
     return data
 
@@ -276,6 +281,7 @@ def options_analysis(symbols):
         new.loc[symbols[x],'Ask'] = data.iloc[y,2]
         new.loc[symbols[x],'Strike'] = strikes[y]
         new.loc[symbols[x],'Price'] = data.iloc[y,11]
+        #price differs from close after hours, this is from real time options data
         new.loc[symbols[x],'Ratio'] = round (100*new.loc[symbols[x],'Bid'] / new.loc[symbols[x],'Price'], 2)
         # create temp portfolio to analyze
         port = Portfolio([symbols[x]], [100])
@@ -296,13 +302,38 @@ def options_analysis(symbols):
 
     return new
 
+
+# NEEDS WORK
+def calculate_iv_on_exp(symbol):
+    # attempts to calculate the composite IV for a given expiration
+    data = pandas.Series(option_data(symbol)['IV'])
+    data = data.reset_index(drop=True)
+    sum_IV = 0
+    for x in range(0,len(data)):
+        if x <= len(data)/2:
+            weight = float(x)**0.5 / (len(data)/2)**0.5
+        else:
+            weight = float(len(data) - x)**0.5 / (len(data)/2)**0.5
+        print weight
+        sum_IV += float( str(data[x])[:-1] ) * weight / 100
+
+    avg = sum_IV / len(data)
+    return avg
+    #compIV = data.mean(axis=1)
+    #return compIV
+
 def uppercase(symbols):
     for x in range(0,len(symbols)):
         symbols[x] = symbols[x].upper()
     return symbols
 
+#print calculate_iv_on_exp('TLT')
 
-print options_analysis(uppercase(['tgt','spy','gld','tlt','eem','iwm','goog','ibm','yhoo','x','uso','ung','slv','gm','qqq']))
+print options_analysis(uppercase(['spy','tgt','gld','tlt','eem','iwm','goog','ibm','yhoo','x','uso','ung','slv','gm','qqq']))
+
+
+def current_price(symbol):
+    return round ( option_data(symbol).iloc[0,11] , 2)
 
 
 # NEXT
@@ -318,7 +349,7 @@ print options_analysis(uppercase(['tgt','spy','gld','tlt','eem','iwm','goog','ib
 #data = import_data(symbols,end_date)
 #returns = daily_returns(data)
 #returns_std, returns_corr, returns_beta = collinearity(returns,0)
-#correlation_analysis('IBM','X',1)
+#correlation_analysis('UNG','USO',1)
 #print returns_std, '\n',returns_corr,'\n', returns_beta
 
 #x = zeroBetaPortfolio(['IWM','EEM','GLD','TLT'],100000,1)
