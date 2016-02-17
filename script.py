@@ -346,9 +346,9 @@ def uppercase(symbols):
 def current_price(symbol):
     return round ( option_data(symbol).iloc[0,11] , 2)
 
-def correlation_portfolio(symbols):
+def correlation_table(symbols, start_date, end_date):
     # get returns data for symbols, ignore amounts of each in portfolio
-    loc_data = import_data(symbols, date_num_years_ago(datetime.date.today(),1), datetime.date.today())
+    loc_data = import_data(symbols, start_date, end_date)
     loc_returns = daily_returns(loc_data)
 
     # analyze the correlations against each other
@@ -367,7 +367,6 @@ def correlation_portfolio(symbols):
     corr_table.to_csv('corr_table.csv')
 
     print corr_table
-
 
 def get_correlation(returns,spearman):
     numsym = len(returns.columns)-1
@@ -392,7 +391,7 @@ def get_correlation(returns,spearman):
     return returns_std.iloc[:-1], returns_corr.iloc[:-1], returns_beta.iloc[:-1]
 
 # Code 30d, 60d, 90d, 180d, 1y correlations between different underlyings and SPY // chart of 1m and 3m  moving correlation
-def corr_plot(symbols,moving_avg_days, start_date, end_date):
+def corr_plot(symbols, moving_avg_days, start_date, end_date):
     loc_data = import_data(symbols, start_date, end_date)
     loc_returns = daily_returns(loc_data)
     array_of_correlations = []
@@ -422,15 +421,20 @@ def corr_plot(symbols,moving_avg_days, start_date, end_date):
     graph.clf()
     return array_of_correlations
 
-def date_num_years_ago(end_date,num_years_ago):
-    return datetime.date.today().replace(year=datetime.date.today().year-num_years_ago)
+def date_k_months_back(end_date, num_months_ago):
+    return end_date.replace(month=end_date.month-num_months_ago)
 
-corr_plot(['USO','SPY'],40, date_num_years_ago(datetime.date.today(),2), datetime.date.today())
+def date_k_years_back(end_date, num_years_ago):
+    return end_date.replace(year=end_date.year-num_years_ago)
+
+#correlation_table(['XLE','XLF','XLK','XLU','XLB','XLP','XLY','XLI','XLV','SPY'], date_k_months_back(datetime.date.today(),1), datetime.date.today())
+
+#corr_plot(['USO','SPY'], 40, date_k_years_back(datetime.date.today(),2), datetime.date.today())
 #corr_plot(['GLD','IBM','IWM','TWTR','USO','X'])
 
 #'BA','BP','BAC','BK','CL','DAL','HON','HOT','NOC','SBUX','HPQ','T','VZ','COST','C','GE','UAL'])
 
-#correlation_portfolio(['GLD','IBM','IWM','TWTR','USO','X'])
+#correlation_table(['GLD','IBM','IWM','TWTR','USO','X'])
 
 # main method
 
